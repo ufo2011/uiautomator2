@@ -2,15 +2,17 @@
 # coding: utf-8
 #
 
-import re
-import os
-import time
 import argparse
+import logging
+import os
+import re
+import time
 
-import yaml
 import bunch
-import uiautomator2 as u2
+import yaml
 from logzero import logger
+
+import uiautomator2 as u2
 
 
 CLICK = "click"
@@ -49,10 +51,12 @@ def read_file_content(path: str, mode:str = "r") -> str:
     with open(path, mode) as f:
         return f.read()
 
-def run_step(cf: bunch.Bunch, app: u2.Session, step: str):
+def run_step(cf: bunch.Bunch, app: u2.Device, step: str):
     logger.info("Step: %s", step)
     oper, body = split_step(step)
-    logger.debug("parse as: %s %s", oper, body)
+    logger
+    
+    logger = logging.getLogger(__name__).debug("parse as: %s %s", oper, body)
 
     if oper == CLICK:
         app.xpath(body).click()

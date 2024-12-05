@@ -3,26 +3,39 @@
 
 set -e
 
-APK_VERSION="2.3.3"
-
+APK_VERSION=$(cat ../version.py| grep apk_version | awk '{print $NF}')
+APK_VERSION=${APK_VERSION//[\"\']}
+JAR_VERSION="0.1.5"
 
 cd "$(dirname $0)"
 
-#if test -f apk_version.txt -a "$APK_VERSION" = "$(cat apk_version.txt)"
-#then
-#	echo "apk version $APK_VERSION, already downloaded, exit"
-#	exit
-#fi
 
-function download(){
-	VERSION=$1
-	NAME=$2
-	URL="https://github.com/openatx/android-uiautomator-server/releases/download/$VERSION/$NAME"
-	echo "$URL"
-	curl -L "$URL" --output "$NAME"
+function download() {
+	local URL=$1
+	local OUTPUT=$2
+	echo ">> download $URL -> $OUTPUT"
+	curl -L "$URL" --output "$OUTPUT"
 }
 
-download "$APK_VERSION" "app-uiautomator.apk"
-download "$APK_VERSION" "app-uiautomator-test.apk"
+function download_apk(){
+	local VERSION=$1
+	local NAME=$2
+	local URL="https://github.com/openatx/android-uiautomator-server/releases/download/$VERSION/$NAME"
+	download "$URL" "$NAME"
+	unzip -tq "$NAME"
+}
 
-unzip -tq app-uiautomator.apk && echo "$APK_VERSION" > apk_version.txt
+function download_jar() {
+	local URL="https://public.uiauto.devsleep.com/u2jar/$JAR_VERSION/u2.jar"
+	https_proxy= download "$URL" "u2.jar"
+}
+
+echo "APK_VERSION: $APK_VERSION"
+
+download_jar
+download_apk "$APK_VERSION" "app-uiautomator.apk"
+cat > version.json <<EOF
+{
+  "com.github.uiautomator": "$APK_VERSION"
+}
+EOF

@@ -1,30 +1,24 @@
-## 本地开发指南
+## Local development
 
 ```
 git clone https://github.com/openatx/uiautomator2
-pip3 install -e uiautomator2
+cd uiautomator2
+
+pip install poetry
+poetry install
+
+# download apk to assets/
+make sync
+
+# run python shell after device or emulator connected
+poetry run uiautomator2 console
 ```
 
-`-e`这个选项可以将该目录以软连接的形式添加到Python `site-packages`
-
-## 生成CHANGELOG
-See changelog from git history
-
-```
-git log --graph --date-order -C -M --pretty=format:"<%h> %ad [%an] %Cgreen%d%Creset %s" --all --date=short
-```
-
-## 使用Sphinx生成文档
-```bash
-pip3 install -e .
-cd docs
-make publish
-```
 
 ## ViewConfiguration
-一些默认的配置，从 `/android/view/ViewConfiguration.java`中可以查到
+Default configuration can retrived from [/android/view/ViewConfiguration.java](https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/view/ViewConfiguration.java)
 
-> 单位: 毫秒
+> Unit: ms
 
 - TAP_TIMEOUT: 100
 - LONG_PRESS_TIMEOUT: 500

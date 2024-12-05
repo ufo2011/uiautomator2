@@ -1,13 +1,11 @@
 # coding: utf-8
 #
 
-import json
 import logging
 import pprint
 from typing import Any
 
-
-logger = logging.getLogger("uiautomator2")
+logger = logging.getLogger(__name__)
 
 class Settings(object):
     """ 赋值时会检查类型 """
@@ -20,6 +18,7 @@ class Settings(object):
             "operation_delay": (0, 0),
             "operation_delay_methods": ["click", "swipe"],
             "fallback_to_blank_screenshot": False,
+            "max_depth": 50,
         }
 
         self._deprecated_props = {
@@ -55,8 +54,8 @@ class Settings(object):
         if isinstance(value, (list, tuple)):
             assert len(value) == 2, "operation_delay only accept list with two items"
         _pre, post = value
-        assert isinstance(_pre, (int, float)), "operation_delay can only contains int or float"
-        assert isinstance(post, (int, float)), "operation_delay can only contains int or float"
+        assert isinstance(_pre, (int, float)), "operation_delay can only contains int or float"
+        assert isinstance(post, (int, float)), "operation_delay can only contains int or float"
 
         self._defaults["operation_delay"] = (_pre, post)
 

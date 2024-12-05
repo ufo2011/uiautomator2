@@ -3,29 +3,15 @@
 
 import functools
 import inspect
-import os
 import shlex
 import threading
 import typing
 from typing import Union
+import warnings
+from PIL import Image
 
-import filelock
-import six
-
-from ._proto import Direction
-from .exceptions import SessionBrokenError, UiObjectNotFoundError
-
-
-def U(x):
-    if six.PY3:
-        return x
-    return x.decode('utf-8') if type(x) is str else x
-
-
-def E(x):
-    if six.PY3:
-        return x
-    return x.encode('utf-8') if type(x) is unicode else x  # noqa: F821
+from uiautomator2._proto import Direction
+from uiautomator2.exceptions import SessionBrokenError, UiObjectNotFoundError
 
 
 def check_alive(fn):
@@ -74,7 +60,7 @@ def wrap_wait_exists(fn):
         if not self.wait(timeout=timeout):
             raise UiObjectNotFoundError({
                 'code': -32002,
-                'message': E(self.selector.__str__())
+                'message': self.selector.__str__()
             })
         return fn(self, *args, **kwargs)
 
@@ -118,7 +104,9 @@ class Exists(object):
         return str(bool(self))
 
 
-def list2cmdline(args: Union[list, tuple]):
+def list2cmdline(args: Union[str, list, tuple]) -> str:
+    if isinstance(args, str):
+        return args
     return ' '.join(list(map(shlex.quote, args)))
 
 
@@ -146,15 +134,7 @@ def inject_call(fn, *args, **kwargs):
     return fn(*ba.args, **ba.kwargs)
 
 
-class ProgressReader:
-    def __init__(self, rd):
-        pass
-
-    def read(self, size=-1):
-        pass
-
-
-def natualsize(size: int):
+def natualsize(size: int) -> str:
     _KB = 1 << 10
     _MB = 1 << 20
     _GB = 1 << 30
@@ -182,7 +162,6 @@ def swipe_in_bounds(d: "uiautomator2.Device",
         AssertionError, ValueError
     """
     def _swipe(_from, _to):
-        print("SWIPE", _from, _to)
         d.swipe(_from[0], _from[1], _to[0], _to[1])
 
     assert 0 < scale <= 1.0
@@ -223,24 +202,53 @@ def thread_safe_wrapper(fn: typing.Callable):
     return inner
 
 
-def process_safe_wrapper(fn: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
+
+def is_version_compatiable(expect_version: str, actual_version: str) -> bool:
     """
-    threadsafe for process calls
+    Check if the actual version is compatiable with the expect version
+
+    Args:
+        expect_version: expect version, e.g. 1.0.0
+        actual_version: actual version, e.g. 1.0.0
+
+    Returns:
+        bool: True if compatiable, otherwise False
     """
-    lockfile_path = os.path.expanduser("~/.uiautomator2/" + fn.__name__ + ".lock")
-    flock = filelock.FileLock(lockfile_path, timeout=120) # default timeout
+    def _parse_version(version: str):
+        return tuple(map(int, version.split(".")))
 
-    @functools.wraps(fn)
-    def inner(self, *args, **kwargs):
-        if not hasattr(self, "_plock"):
-            self._plock = flock
+    evs = _parse_version(expect_version)
+    avs = _parse_version(actual_version)
+    assert len(evs) == len(avs) == 3, "version format error"
+    if evs[0] == avs[0]:
+        if evs[1] < avs[1]:
+            return True
+        if evs[1] == avs[1]:
+            return evs[2] <= avs[2]
+    return False
 
-        with self._plock:
-            return fn(self, *args, **kwargs)
-    
-    return inner
+
+def deprecated(reason):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(f"Function '{func.__name__}' is deprecated: {reason}", DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
-if __name__ == "__main__":
-    for n in (1, 10000, 10000000, 10000000000):
-        print(n, natualsize(n))
+def image_convert(im: Image.Image, format: str):
+    if format == "pillow":
+        return im
+    if format == "opencv":
+        try:
+            import cv2
+            import numpy as np
+            im = im.convert("RGB")
+            return cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+        except ImportError:
+            warnings.warn("missing lib: cv2 or numpy")
+            raise
+    raise ValueError("Unsupported format:", format)
+
